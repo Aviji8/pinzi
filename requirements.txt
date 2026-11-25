@@ -1,0 +1,2 @@
+pypinyin>=0.51
+jieba>=0.42

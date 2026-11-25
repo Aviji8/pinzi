@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>PinZi</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=LXGW+WenKai+TC:wght@400;700&family=Outfit:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+/* VOICE: quiet, unhurried study desk; nothing on screen that isn't needed
+   IDEA: rice paper and a vermilion seal by day; a lantern-lit street by night
+   PICTURE: hanging lanterns over the header; characters in red 田字格 grids
+   COLOUR and TYPE: day = rice paper, ink, vermilion; night = warm ink-brown, lantern red, gold glow; WenKai for hanzi, Outfit for Latin
+   LAYOUT: lantern header with test + level picker, one thin progress line, card grid; card view = calm word grid */
+:root{color-scheme:light dark;
+ --bg:light-dark(#f7f3ea,#170c0a);--paper:light-dark(#fffdf8,#24130f);--ink:light-dark(#22201c,#f6e9d6);--mute:light-dark(#7a7166,#b9a58c);
+ --red:light-dark(#b8322a,#e8483a);--redd:light-dark(#a02a22,#ff7a5c);--gold:light-dark(#b8862f,#f3c260);
+ --grid:light-dark(#ecc4bd,#6b2c22);--ok:light-dark(#3d7a55,#7fcf9a);--line:light-dark(#e7dfd2,#3a211a);--hl:light-dark(#fbe3dc,#4a1d16);
+ --head:light-dark(#fffdf8,#120807);--glow:light-dark(transparent,rgba(255,120,60,.35))}
+:root[data-theme=light]{color-scheme:light}:root[data-theme=dark]{color-scheme:dark}
+*{box-sizing:border-box;min-width:0}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.55 Outfit,system-ui,sans-serif;overflow-x:clip}
+.zh{font-family:"LXGW WenKai TC","Noto Serif TC","PingFang TC","Microsoft JhengHei",serif}
+button{font:inherit;color:inherit;cursor:pointer;border:0;background:none;min-height:44px}
+button:disabled{opacity:.35;cursor:default}
+button:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+[hidden]{display:none!important}
+/* header */
+.top{position:relative;background:radial-gradient(circle at 88% -10%,var(--glow),transparent 55%),var(--head);border-bottom:1px solid var(--line);padding:26px max(5vw,18px) 22px;overflow:hidden}
+.top::after{content:"";position:absolute;inset:auto 0 0 0;height:3px;background:linear-gradient(90deg,transparent,var(--red),transparent);opacity:.6}
+.lanterns{position:absolute;top:0;right:max(4vw,10px);display:flex;gap:clamp(10px,4vw,34px);pointer-events:none}
+.lan{transform-origin:50% 0;animation:sway 5s ease-in-out infinite alternate}
+.lan:nth-child(2){animation-delay:-2s;margin-top:-14px}.lan:nth-child(3){animation-delay:-3.5s}
+.lan svg{display:block;width:clamp(30px,7vw,46px);filter:drop-shadow(0 0 18px var(--glow)) drop-shadow(0 0 6px var(--glow))}
+@keyframes sway{from{transform:rotate(-3deg)}to{transform:rotate(3deg)}}
+.brand{display:flex;align-items:center;gap:12px}
+.seal{width:44px;height:44px;border-radius:8px;background:var(--red);color:#fff;display:grid;place-items:center;font-size:26px;box-shadow:0 0 22px var(--glow)}
+.top h1{margin:0;font-size:clamp(26px,5vw,38px);line-height:1.05;font-weight:700}
+.top p{margin:4px 0 0;color:var(--mute);font-size:15px}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:24px;padding:3px;margin-top:18px;background:var(--bg)}
+.seg button{border-radius:20px;padding:0 18px;font-weight:600;color:var(--mute)}
+.seg button.on{background:var(--red);color:#fff;box-shadow:0 0 16px var(--glow)}
+.lvls{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.lvls button{border:1px solid var(--line);border-radius:22px;padding:0 15px;font-weight:600;color:var(--mute);background:var(--paper)}
+.lvls button.on{border-color:var(--red);color:var(--redd);background:var(--hl)}
+.prog{display:flex;align-items:center;gap:12px;margin-top:16px;font-size:14px;color:var(--mute)}
+.meter{flex:1;height:4px;background:var(--line);border-radius:4px;overflow:hidden}
+.meter i{display:block;height:100%;background:linear-gradient(90deg,var(--red),var(--gold));border-radius:4px;transition:width .4s}
+.prog b{color:var(--ink)}
+.wrap{max-width:1000px;margin:0 auto;padding:20px max(4vw,14px) 60px}
+h2{font-size:18px;margin:22px 0 10px;font-weight:600;color:var(--mute)}
+.acts{display:flex;flex-wrap:wrap;gap:10px}
+.acts button{border-radius:24px;padding:0 20px;font-weight:600;border:1px solid var(--line);background:var(--paper)}
+.acts button:first-child{background:var(--red);color:#fff;border-color:var(--red);box-shadow:0 0 18px var(--glow)}
+.deck{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
+.tile{background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:12px 14px;text-align:left;display:flex;flex-direction:column;gap:4px;transition:border-color .2s}
+.tile:hover{border-color:var(--red)}
+.tile .n{font-weight:600;display:flex;justify-content:space-between}.tile .n small{color:var(--mute);font-weight:400}
+.tile .pv{font-size:21px;letter-spacing:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bar{height:3px;background:var(--line);border-radius:3px;overflow:hidden}.bar i{display:block;height:100%;background:var(--ok)}
+.tile.done{border-color:var(--ok)}
+/* card view */
+.cvhead{position:sticky;top:0;z-index:5;background:var(--bg);border-bottom:1px solid var(--line);padding:6px max(4vw,10px);display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.cvhead .t{font-weight:600;flex:1;font-size:16px}
+.pill{border:1px solid var(--line);border-radius:22px;padding:0 14px;background:var(--paper);font-size:15px}
+.pill.on{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;font-size:14px;color:var(--mute)}
+.words{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px}
+.w{background:var(--paper);border:1px solid var(--line);border-radius:14px;padding:12px 10px 10px;display:flex;flex-direction:column;align-items:center;text-align:center;gap:8px;position:relative}
+.w.sure{border-color:var(--ok)}.w.again{border-color:var(--red)}
+.cells{display:flex;justify-content:center;flex-wrap:wrap;gap:3px;padding:2px;border-radius:6px}
+.cells:hover .cell{border-color:var(--red)}
+.cell{width:52px;height:52px;position:relative;border:1.5px solid var(--grid);display:grid;place-items:center;font-size:36px;line-height:1;transition:border-color .2s}
+.cell::before,.cell::after,.pad::before,.pad::after{content:"";position:absolute;border-color:var(--grid);border-style:dashed;border-width:0;pointer-events:none}
+.cell::before,.pad::before{left:50%;top:0;bottom:0;border-left-width:1px}.cell::after,.pad::after{top:50%;left:0;right:0;border-top-width:1px}
+.cell span{position:relative;z-index:1}
+.w.long .cell{width:38px;height:38px;font-size:26px}
+.spk{position:absolute;top:4px;right:4px;width:40px;min-height:40px;border-radius:50%;color:var(--mute);display:grid;place-items:center}
+.spk:hover{color:var(--red);background:var(--hl)}
+.spk svg{width:20px;height:20px}
+.alt{font-size:13px;color:var(--mute)}
+.reveal{width:100%;border-radius:10px;border:1px dashed var(--line);font-size:14px;color:var(--mute);min-height:40px}
+.ans .py{font-size:17px;color:var(--redd);font-weight:600}.ans .en{font-size:14px;line-height:1.4}.ans .lvl{font-size:12px;color:var(--mute)}
+.marks{display:flex;gap:6px;width:100%}
+.marks button{flex:1;border-radius:10px;border:1px solid var(--line);font-size:14px;min-height:40px;color:var(--mute)}
+.marks .s.on{background:var(--ok);color:#fff;border-color:var(--ok)}.marks .a.on{background:var(--red);color:#fff;border-color:var(--red)}
+.flip{display:block;margin:24px auto 0;background:var(--red);color:#fff;border-radius:28px;padding:0 26px;font-weight:600;box-shadow:0 0 18px var(--glow)}
+.story{background:var(--paper);border:1px solid var(--line);border-radius:16px;padding:18px clamp(14px,3vw,28px);max-width:760px;margin:0 auto}
+.story h3{margin:0 0 6px;font-size:22px}
+.sent{padding:10px 0;border-top:1px dashed var(--line)}
+.sent .zh{font-size:22px;line-height:1.7}.sent .py{color:var(--redd);font-size:15px}.sent .en{color:var(--mute);font-size:15px}
+.hide-py .sent .py,.hide-en .sent .en{display:none}
+.sbtn{display:inline-grid;place-items:center;width:34px;min-height:34px;border-radius:50%;color:var(--mute);vertical-align:middle}
+.sbtn svg{width:18px;height:18px}.sbtn:hover{color:var(--red)}
+mark{background:var(--hl);color:inherit;border-radius:4px;padding:0 1px;cursor:pointer;border-bottom:2px solid var(--red)}
+.navrow{display:flex;justify-content:space-between;gap:10px;margin:20px auto 0;max-width:760px}
+.navrow button{border:1px solid var(--line);border-radius:22px;padding:0 18px;background:var(--paper)}
+.sheet{position:fixed;inset:0;background:rgba(10,4,2,.55);z-index:20;display:flex;align-items:flex-end;justify-content:center}
+.sheet>div{background:var(--paper);width:min(520px,100%);border-radius:20px 20px 0 0;padding:18px 18px 26px;max-height:92vh;overflow:auto;border-top:3px solid var(--red)}
+@media(min-width:700px){.sheet{align-items:center}.sheet>div{border-radius:20px;border:1px solid var(--line);border-top:3px solid var(--red)}}
+.sh-top{display:flex;align-items:flex-start;gap:10px}
+.sh-top .big{flex:1}.sh-top .py{color:var(--redd);font-size:20px;font-weight:600}.sh-top .en{color:var(--mute)}
+.pads{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin:18px 0}
+.pad{position:relative;width:min(160px,40vw);aspect-ratio:1;border:2px solid var(--grid);border-radius:4px;background:var(--bg)}
+.pad svg{position:relative;z-index:1;width:100%;height:100%;display:block}
+.pad .na{position:absolute;inset:0;display:grid;place-items:center;font-size:13px;color:var(--mute);text-align:center;padding:8px}
+.sh-btns{display:flex;flex-wrap:wrap;gap:8px;justify-content:center}
+.sh-btns button{border:1px solid var(--line);border-radius:22px;padding:0 18px;background:var(--bg);font-weight:600;display:inline-flex;align-items:center;gap:6px}
+.sh-btns .main{background:var(--red);color:#fff;border-color:var(--red)}
+.sh-btns svg{width:18px;height:18px}
+.msg{text-align:center;color:var(--mute);font-size:14px;min-height:22px;margin-top:8px}
+.tip{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:12px;max-width:min(92vw,420px);font-size:15px;z-index:9}
+.voice{display:flex;gap:10px;align-items:center;margin-top:18px;font-size:14px;color:var(--mute)}.seg2{display:inline-flex;border:1px solid var(--line);border-radius:22px;padding:3px;background:var(--paper)}.seg2 button{border-radius:18px;padding:0 14px;font-size:14px;min-height:38px;color:var(--mute)}.seg2 button.on{background:var(--ink);color:var(--bg)}
+.mode{margin-top:12px}.lvwrap{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:12px}.lvwrap .lvls{margin-top:0}.lvpre{font-size:14px;color:var(--mute)}
+.tile.theme{align-items:flex-start}.tseal{width:38px;height:38px;border-radius:8px;background:var(--red);color:#fff;display:grid;place-items:center;font-size:22px;box-shadow:0 0 14px var(--glow);margin-bottom:4px}
+#lvtitle .pill{min-height:36px;font-size:14px;margin-right:6px;color:var(--ink)}
+.zred{color:var(--red)}.intro{margin:14px 0 0;max-width:560px;font-size:16px;line-height:1.5}.intro b{color:var(--redd)}
+.how{list-style:none;margin:12px 0 0;padding:0;display:flex;flex-wrap:wrap;gap:6px 18px;font-size:14px;color:var(--mute);counter-reset:s}.how li{counter-increment:s;display:flex;gap:6px;align-items:baseline}.how li::before{content:counter(s);display:inline-grid;place-items:center;width:20px;height:20px;border-radius:50%;background:var(--hl);color:var(--redd);font-size:12px;font-weight:700;flex:none}.how b{color:var(--ink);font-weight:600}
+.startbtn{display:flex;align-items:center;gap:10px;margin-top:14px;padding:8px 14px;border:1px solid var(--line);border-radius:14px;background:var(--bg);text-align:left;font-size:14px;color:var(--mute);width:100%;max-width:560px}
+.startbtn .zh{background:var(--red);color:#fff;border-radius:6px;padding:2px 6px;font-size:15px;flex:none}.startbtn b{color:var(--ink);font-weight:600}
+.article{max-width:720px}.article p,.article li{font-size:17px;line-height:1.65}.kicker{color:var(--redd);font-size:18px;margin:6px 0 0}
+.ah{font-size:clamp(30px,6vw,42px);line-height:1.08;margin:4px 0 10px;color:var(--ink)}.lead{font-size:19px!important;color:var(--mute)}
+.toc{display:flex;gap:8px;flex-wrap:wrap;margin:16px 0 8px}.toc a{border:1px solid var(--line);border-radius:20px;padding:8px 14px;color:var(--ink);text-decoration:none;font-size:14px;background:var(--paper)}
+.article h3{font-size:24px;margin:40px 0 10px;display:flex;align-items:center;gap:10px;scroll-margin-top:70px}.article h4{font-size:18px;margin:22px 0 8px}
+.num{width:30px;height:30px;border-radius:8px;background:var(--red);color:#fff;display:grid;place-items:center;font-size:16px;flex:none;box-shadow:0 0 12px var(--glow)}
+.cards2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:14px 0}.cards2 div{background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:12px}.cards2 b{display:block;color:var(--redd)}.cards2 span{font-size:14px;color:var(--mute)}
+.pics{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:14px 0}
+.pic{background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:10px;display:grid;grid-template-columns:1fr auto 1fr;align-items:center;justify-items:center;row-gap:4px}
+.pic svg{width:46px;height:46px}.pic .arrow{color:var(--mute)}.pz{font-size:38px;line-height:1}.pp{grid-column:1/-1;font-size:13px;color:var(--mute)}
+.timeline{list-style:none;padding:0;margin:14px 0;border-left:2px solid var(--grid)}.timeline li{position:relative;padding:4px 0 10px 18px;font-size:16px!important}.timeline li::before{content:"";position:absolute;left:-7px;top:12px;width:12px;height:12px;border-radius:50%;background:var(--red)}.timeline li span:last-child{display:block;color:var(--mute);font-size:14px}
+.build{display:grid;grid-template-columns:auto minmax(0,1fr);gap:8px 16px;align-items:baseline;background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:14px;margin:12px 0}.build .zh{font-size:24px;white-space:nowrap}.build em{font-style:normal;color:var(--mute);font-size:15px}
+.aside{font-size:15px!important;color:var(--mute);border-left:3px solid var(--gold);padding-left:12px}
+.tones{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px;margin:14px 0}
+.tone{background:var(--paper);border:1px solid var(--line);border-radius:14px;padding:12px 10px;display:flex;flex-direction:column;align-items:center;gap:2px;text-align:center}.tone:hover{border-color:var(--red)}
+.tn{font-size:13px;color:var(--mute);font-weight:600}.tc{width:60px;height:46px}.tz{font-size:34px;line-height:1.2}.tp{font-size:20px;color:var(--redd);font-weight:700}.te{font-size:14px}.td{font-size:12px;color:var(--mute);line-height:1.35;margin-top:4px}
+.rules li{margin-bottom:6px}
+.quiz{background:var(--paper);border:1px solid var(--line);border-top:3px solid var(--red);border-radius:16px;padding:16px;margin:24px 0}.quiz h4{margin:0 0 4px}.qmsg{margin:0 0 10px!important;font-size:16px!important;color:var(--mute)}
+.qrow{display:flex;align-items:center;justify-content:space-between;gap:10px}.qplay{display:inline-flex;align-items:center;gap:8px;background:var(--red);color:#fff;border-radius:24px;padding:0 20px;font-weight:600;box-shadow:0 0 14px var(--glow)}.qplay svg{width:18px;height:18px}.qscore{font-weight:700}
+.qopts{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-top:12px}.qopts button{border:1px solid var(--line);border-radius:12px;background:var(--bg);font-weight:600}.qopts button.ok,.qopts button.no{opacity:1}.qopts button.ok{background:var(--ok);color:#fff;border-color:var(--ok)}.qopts button.no{background:var(--red);color:#fff;border-color:var(--red)}
+.next{background:var(--hl);border-radius:16px;padding:16px;margin-top:30px;font-size:16px}.next .flip{margin:12px 0 0}
+@media(max-width:600px){.pics{grid-template-columns:repeat(2,minmax(0,1fr))}.qopts{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.note{font-size:13px;color:var(--mute);margin-top:34px;line-height:1.5}
+.empty{color:var(--mute);padding:20px;text-align:center;background:var(--paper);border-radius:14px;border:1px dashed var(--line)}
+@media(max-width:600px){.words,.deck{grid-template-columns:repeat(2,minmax(0,1fr))}.cell{width:44px;height:44px;font-size:30px}.w.long .cell{width:32px;height:32px;font-size:22px}.lanterns{opacity:.9}.brand{padding-right:110px}}
+@media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+<section id="home">
+  <header class="top">
+    <div class="lanterns"><div class="lan"><svg viewBox="0 0 40 78" aria-hidden="true"><line x1="20" y1="0" x2="20" y2="14" stroke="var(--gold)" stroke-width="1.5"/><rect x="13" y="13" width="14" height="5" rx="1.5" fill="var(--gold)"/><ellipse cx="20" cy="38" rx="18" ry="21" fill="var(--red)"/><ellipse cx="20" cy="38" rx="10" ry="21" fill="none" stroke="rgba(0,0,0,.18)" stroke-width="1.2"/><ellipse cx="20" cy="38" rx="3" ry="21" fill="none" stroke="rgba(0,0,0,.14)" stroke-width="1"/><ellipse cx="14" cy="30" rx="5" ry="9" fill="rgba(255,230,160,.28)"/><rect x="13" y="57" width="14" height="5" rx="1.5" fill="var(--gold)"/><path d="M16 62v14M20 62v16M24 62v14" stroke="var(--gold)" stroke-width="1.4"/></svg></div><div class="lan"><svg viewBox="0 0 40 78" aria-hidden="true"><line x1="20" y1="0" x2="20" y2="14" stroke="var(--gold)" stroke-width="1.5"/><rect x="13" y="13" width="14" height="5" rx="1.5" fill="var(--gold)"/><ellipse cx="20" cy="38" rx="18" ry="21" fill="var(--red)"/><ellipse cx="20" cy="38" rx="10" ry="21" fill="none" stroke="rgba(0,0,0,.18)" stroke-width="1.2"/><ellipse cx="20" cy="38" rx="3" ry="21" fill="none" stroke="rgba(0,0,0,.14)" stroke-width="1"/><ellipse cx="14" cy="30" rx="5" ry="9" fill="rgba(255,230,160,.28)"/><rect x="13" y="57" width="14" height="5" rx="1.5" fill="var(--gold)"/><path d="M16 62v14M20 62v16M24 62v14" stroke="var(--gold)" stroke-width="1.4"/></svg></div><div class="lan"><svg viewBox="0 0 40 78" aria-hidden="true"><line x1="20" y1="0" x2="20" y2="14" stroke="var(--gold)" stroke-width="1.5"/><rect x="13" y="13" width="14" height="5" rx="1.5" fill="var(--gold)"/><ellipse cx="20" cy="38" rx="18" ry="21" fill="var(--red)"/><ellipse cx="20" cy="38" rx="10" ry="21" fill="none" stroke="rgba(0,0,0,.18)" stroke-width="1.2"/><ellipse cx="20" cy="38" rx="3" ry="21" fill="none" stroke="rgba(0,0,0,.14)" stroke-width="1"/><ellipse cx="14" cy="30" rx="5" ry="9" fill="rgba(255,230,160,.28)"/><rect x="13" y="57" width="14" height="5" rx="1.5" fill="var(--gold)"/><path d="M16 62v14M20 62v16M24 62v14" stroke="var(--gold)" stroke-width="1.4"/></svg></div></div>
+    <div class="brand"><span class="seal zh">拼</span><div><h1>Pin<span class="zred">Zi</span></h1><p id="sub">Where sound meets character · 拼音 + 漢字</p></div></div>
+    <p class="intro">Learn every word you need for <b>TOCFL</b> or <b>HSK</b>, 20 words at a time. Hear each word, watch how it is written, and mark it until you are 100% sure.</p>
+    <button class="startbtn" id="open-intro"><span class="zh">中文</span> New to Chinese? <b>Start here: language, history &amp; tones →</b></button>
+    <ol class="how"><li><b>Pick</b> your test and level, or a theme</li><li><b>Tap</b> a character for strokes, 🔊 to listen</li><li><b>Mark</b> ✓ sure or ✗ again until every card is done</li></ol>
+    <div class="seg" role="tablist"><button id="t-tocfl" data-test="tocfl">TOCFL · 繁體</button><button id="t-hsk" data-test="hsk">HSK 3.0 · 简体</button></div>
+    <div class="seg2 mode"><button id="m-level" data-mode="level">By level</button><button id="m-theme" data-mode="theme">By theme</button></div>
+    <div class="lvwrap"><span id="lvpre" class="lvpre" hidden>Up to</span><div class="lvls" id="lvls"></div></div>
+    <div class="prog" id="prog"><span><b id="sure">0</b>/<span id="tot">0</span> sure</span><div class="meter"><i id="meter" style="width:0"></i></div><span><b id="cdone">0</b>/<span id="ctot">0</span> cards</span></div>
+  </header>
+  <div class="wrap">
+    <div class="acts" id="acts"></div>
+    <div class="voice"><span>Accent</span><div class="seg2"><button data-acc="zh-TW">台灣 Taiwan</button><button data-acc="zh-CN">大陸 Mainland</button></div></div>
+    <h2 id="lvtitle">Cards</h2>
+    <div class="deck" id="deck"><p class="empty">Loading…</p></div>
+    <p class="note">Word lists: TOCFL 2023 official list, HSK 3.0 (2021) list. Meanings from CC-CEDICT. Stroke order from Make Me a Hanzi via Hanzi Writer; it follows Mainland stroke order, which differs from Taiwan for a few characters. Voice uses your device's built-in Chinese voice. Progress saves in this browser only.</p>
+  </div>
+</section>
+
+
+<section id="intro" hidden>
+  <div class="cvhead"><button class="pill" id="back3">← PinZi</button><span class="t">Intro to Chinese</span></div>
+  <div class="wrap article">
+    <p class="kicker zh">中文入門</p>
+    <h2 class="ah">Chinese in five minutes</h2>
+    <p class="lead">No alphabet, four tones, and characters that began as pictures more than 3,000 years ago. Here is everything you need before your first card.</p>
+    <nav class="toc"><a href="#intro" data-jump="s-lang">The language</a><a href="#intro" data-jump="s-hist">Characters</a><a href="#intro" data-jump="s-py">Pinyin</a><a href="#intro" data-jump="s-tone">Tones</a></nav>
+
+    <h3 id="s-lang"><span class="num">1</span>The language</h3>
+    <p><b>Mandarin Chinese</b> is spoken by more than a billion people. It is the main language of Taiwan, where it is called <span class="zh">國語</span> or <span class="zh">華語</span>, and of mainland China, where it is called <span class="zh">普通话</span>. It is also an official language of Singapore.</p>
+    <p>"Chinese" is really a family of languages: Mandarin, Cantonese, Taiwanese Hokkien and others sound very different but share one writing system. PinZi teaches <b>Mandarin</b>.</p>
+    <div class="cards2"><div><b>TOCFL</b><span>Taiwan's test · Traditional characters <span class="zh">繁體字</span></span></div><div><b>HSK</b><span>Mainland China's test · Simplified characters <span class="zh">简体字</span></span></div></div>
+    <p>Good news: Chinese grammar is simple. No verb conjugations, no plurals, no genders. <span class="zh">我去、你去、他去</span> — "go" never changes.</p>
+
+    <h3 id="s-hist"><span class="num">2</span>Characters began as pictures</h3>
+    <div class="pics"><div class="pic"><svg viewBox="0 0 64 64" aria-hidden="true"><circle cx="32" cy="32" r="20" fill="none" stroke="var(--red)" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/><circle cx="32" cy="32" r="3" fill="var(--red)"/></svg><span class="arrow">→</span><span class="zh pz">日</span><span class="pp">rì · sun</span></div><div class="pic"><svg viewBox="0 0 64 64" aria-hidden="true"><path d="M40 10a22 22 0 1 0 0 44a17 17 0 1 1 0-44z" fill="none" stroke="var(--red)" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/></svg><span class="arrow">→</span><span class="zh pz">月</span><span class="pp">yuè · moon</span></div><div class="pic"><svg viewBox="0 0 64 64" aria-hidden="true"><path d="M6 52L20 22L30 40L40 12L52 38L58 52Z" fill="none" stroke="var(--red)" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/></svg><span class="arrow">→</span><span class="zh pz">山</span><span class="pp">shān · mountain</span></div><div class="pic"><svg viewBox="0 0 64 64" aria-hidden="true"><path d="M32 12L14 54M32 12L50 54" fill="none" stroke="var(--red)" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/><circle cx="32" cy="9" r="4" fill="var(--red)"/></svg><span class="arrow">→</span><span class="zh pz">人</span><span class="pp">rén · person</span></div><div class="pic"><svg viewBox="0 0 64 64" aria-hidden="true"><path d="M32 6V58M10 24H54M32 24L12 50M32 24L52 50" fill="none" stroke="var(--red)" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/></svg><span class="arrow">→</span><span class="zh pz">木</span><span class="pp">mù · tree</span></div><div class="pic"><svg viewBox="0 0 64 64" aria-hidden="true"><path d="M14 22Q32 10 50 22Q54 40 32 50Q10 40 14 22Z" fill="none" stroke="var(--red)" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/></svg><span class="arrow">→</span><span class="zh pz">口</span><span class="pp">kǒu · mouth</span></div></div>
+    <p>The oldest Chinese writing, <b>oracle bone script</b> <span class="zh">甲骨文</span>, was carved on bones and shells about 3,200 years ago. Over time the pictures became simpler lines:</p>
+    <ol class="timeline"><li><b>Oracle bones</b> <span class="zh">甲骨文</span><span>around 1200 BCE</span></li><li><b>Seal script</b> <span class="zh">篆書</span><span>unified by the first emperor, 221 BCE</span></li><li><b>Clerical script</b> <span class="zh">隸書</span><span>Han dynasty; curves became straight strokes</span></li><li><b>Regular script</b> <span class="zh">楷書</span><span>settled by the Tang dynasty; still used today</span></li><li><b>Simplified</b> <span class="zh">简体字</span><span>mainland China, from the 1950s; Taiwan keeps Traditional</span></li></ol>
+    <p>Most characters are built from parts, which makes them easier than they look:</p>
+    <div class="build"><span class="zh">日 + 月 = 明</span><em>sun + moon = bright</em><span class="zh">人 + 木 = 休</span><em>person by a tree = rest</em><span class="zh">女 + 子 = 好</span><em>woman + child = good</em><span class="zh">女 + 馬 = 媽</span><em>"woman" gives the meaning, 馬 mǎ gives the sound = mā, mom</em></div>
+    <p>That last kind, <b>meaning part + sound part</b>, is the most common type of character. Spot the parts and new characters get much easier.</p>
+
+    <h3 id="s-py"><span class="num">3</span>Pinyin: Chinese in Latin letters</h3>
+    <p>Characters don't show how to say them, so learners use <b>pinyin</b> <span class="zh">拼音</span>: Chinese sounds written in Latin letters, with marks for the tone. It was introduced in 1958 and is used worldwide. <span class="zh">你好</span> → <b>nǐ hǎo</b>.</p>
+    <p>Every syllable has a start sound, an end sound and a tone: <b>m</b> + <b>a</b> + tone 3 = <b>mǎ</b>. Watch out for letters that sound different from English: <b>q</b> ≈ "ch", <b>x</b> ≈ "sh", <b>zh</b> ≈ "j", <b>c</b> ≈ "ts".</p>
+    <p class="aside">In Taiwan, children learn <b>Zhuyin</b> <span class="zh">注音 ㄅㄆㄇㄈ</span> instead of pinyin. You will see it in Taiwanese books and phone keyboards.</p>
+
+    <h3 id="s-tone"><span class="num">4</span>The four tones</h3>
+    <p>In Mandarin, the <b>pitch</b> of your voice changes the meaning. Same sound, different tone, different word. Tap each one to hear it:</p>
+    <div class="tones"><button class="tone" data-sayw="媽"><span class="tn">Tone 1</span><svg class="tc" viewBox="0 0 60 46" aria-hidden="true"><path d="M2 8H58M2 40H58" stroke="var(--line)" stroke-dasharray="2 3"/><polyline points="6,8 54,8" fill="none" stroke="var(--red)" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/></svg><span class="tz zh">媽</span><span class="tp">mā</span><span class="te">mother</span><span class="td">High and flat, like singing one note</span></button><button class="tone" data-sayw="麻"><span class="tn">Tone 2</span><svg class="tc" viewBox="0 0 60 46" aria-hidden="true"><path d="M2 8H58M2 40H58" stroke="var(--line)" stroke-dasharray="2 3"/><polyline points="6,24 54,8" fill="none" stroke="var(--red)" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/></svg><span class="tz zh">麻</span><span class="tp">má</span><span class="te">numb; hemp</span><span class="td">Rising, like asking “huh?”</span></button><button class="tone" data-sayw="馬"><span class="tn">Tone 3</span><svg class="tc" viewBox="0 0 60 46" aria-hidden="true"><path d="M2 8H58M2 40H58" stroke="var(--line)" stroke-dasharray="2 3"/><polyline points="6,32 30,40 54,16" fill="none" stroke="var(--red)" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/></svg><span class="tz zh">馬</span><span class="tp">mǎ</span><span class="te">horse</span><span class="td">Low, dipping down (then up a little)</span></button><button class="tone" data-sayw="罵"><span class="tn">Tone 4</span><svg class="tc" viewBox="0 0 60 46" aria-hidden="true"><path d="M2 8H58M2 40H58" stroke="var(--line)" stroke-dasharray="2 3"/><polyline points="6,8 54,40" fill="none" stroke="var(--red)" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/></svg><span class="tz zh">罵</span><span class="tp">mà</span><span class="te">to scold</span><span class="td">Sharp fall, like a firm “No!”</span></button><button class="tone" data-sayw="嗎"><span class="tn">Neutral</span><svg class="tc" viewBox="0 0 60 46" aria-hidden="true"><path d="M2 8H58M2 40H58" stroke="var(--line)" stroke-dasharray="2 3"/><circle cx="30" cy="30" r="4" fill="var(--red)"/></svg><span class="tz zh">嗎</span><span class="tp">ma</span><span class="te">question word</span><span class="td">Short and light, no tone mark</span></button></div>
+    <p class="aside">These are your device's built-in voice, so they may sound a little robotic. Listen for the shape of the pitch.</p>
+    <h4>Three tone changes to know</h4>
+    <ul class="rules"><li>Two 3rd tones in a row: the first becomes 2nd. <span class="zh">你好</span> is written nǐ hǎo but said <b>ní hǎo</b>.</li><li><span class="zh">不</span> bù becomes <b>bú</b> before a 4th tone: <span class="zh">不是</span> búshì.</li><li><span class="zh">一</span> yī becomes <b>yí</b> before a 4th tone (<span class="zh">一個</span> yíge) and <b>yì</b> before other tones (<span class="zh">一天</span> yìtiān).</li></ul>
+
+    <div class="quiz" id="tquiz">
+      <h4>Guess the tone</h4>
+      <p class="qmsg" id="qmsg">Tap Play, listen, then choose the tone.</p>
+      <div class="qrow"><button class="qplay" id="qplay"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M16.5 8.5a5 5 0 0 1 0 7M19 6a8.5 8.5 0 0 1 0 12"/></svg> Play</button><span class="qscore" id="qscore">0 / 0</span></div>
+      <div class="qopts"><button data-q="1" disabled>Tone 1</button><button data-q="2" disabled>Tone 2</button><button data-q="3" disabled>Tone 3</button><button data-q="4" disabled>Tone 4</button></div>
+    </div>
+
+    <div class="next"><b>Ready?</b> Start with <b>Pre-A1</b> (TOCFL) or <b>HSK 1</b>, or browse a theme like <b>People</b> or <b>Time</b>.<button class="flip" id="go-start">Go to my cards →</button></div>
+  </div>
+</section>
+
+<section id="cv" hidden>
+  <div class="cvhead"><button class="pill" id="back">← Cards</button><span class="t" id="cvt"></span><button class="pill" id="mode" hidden></button></div>
+  <div class="wrap" id="cvbody"></div>
+</section>
+
+<section id="rv" hidden>
+  <div class="cvhead"><button class="pill" id="back2">← Cards</button><span class="t" id="rvt">Weak words</span></div>
+  <div class="wrap"><div class="words" id="rvw"></div></div>
+</section>
+
+<div class="sheet" id="sheet" hidden><div role="dialog" aria-modal="true" aria-label="Stroke order">
+  <div class="sh-top"><div class="big"><div class="zh" id="sh-w" style="font-size:34px;line-height:1.2"></div><div class="py" id="sh-p"></div><div class="en" id="sh-e"></div></div><button class="pill" id="sh-x" aria-label="Close">✕</button></div>
+  <div class="pads" id="pads"></div>
+  <div class="sh-btns"><button class="main" id="sh-play">▶ Replay strokes</button><button id="sh-say"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M16.5 8.5a5 5 0 0 1 0 7M19 6a8.5 8.5 0 0 1 0 12"/></svg> Listen</button></div>
+  <div class="msg" id="sh-msg"></div>
+</div></div>
+<div class="tip" id="tip" hidden></div>
+
+<script src="https://cdn.jsdelivr.net/npm/hanzi-writer@3.7.2/dist/hanzi-writer.min.js"></script>
+<script>
+{
+const $=id=>document.getElementById(id);
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const LEVELS={tocfl:[['Pre-A1','tocfl-a','Pre-A1'],['A1','tocfl-a','A1'],['A2','tocfl-a','A2'],['B1','tocfl-L3'],['B2','tocfl-L4'],['C1–C2','tocfl-L5']],
+  hsk:[['HSK 1','hsk-1'],['HSK 2','hsk-2'],['HSK 3','hsk-3'],['HSK 4','hsk-4'],['HSK 5','hsk-5'],['HSK 6','hsk-6'],['HSK 7–9','hsk-7']]};
+let S={m:{},test:'tocfl',lv:{tocfl:0,hsk:0}};
+try{S=Object.assign(S,JSON.parse(localStorage.getItem('hanziCards')||'{}'))}catch(e){}
+const save=()=>{try{localStorage.setItem('hanziCards',JSON.stringify(S))}catch(e){}};
+const decks={},strokes={};
+const ui={side:'front',show:false,py:true,en:true,open:{}};
+const cur=()=>LEVELS[S.test][S.lv[S.test]||0];
+const isHsk=k=>/(^|-)hsk/.test(k);
+const disp=(w,k)=>isHsk(k)?w.s:w.t.split('/')[0].replace(/[()]/g,'');
+const key=(k,n,i)=>k+':'+n+':'+i;
+const wk=(k,w)=>(isHsk(k)?'hsk':'tocfl')+'|'+(w.s||w.t)+'|'+w.p;
+const themeData={};
+async function loadThemes(t){if(!themeData[t])themeData[t]=fetch('data/themes-'+t+'.json').then(r=>r.json());return themeData[t]}
+async function loadDeck(k){
+  if(decks[k])return decks[k];
+  let m;
+  if((m=k.match(/^th-(tocfl|hsk)-([a-z]+)-(\d)$/))){const T=await loadThemes(m[1]);const ws=(T.words[m[2]]||[]).filter(w=>w.r<=+m[3]);
+    decks[k]=[];for(let i=0;i<ws.length;i+=20)decks[k].push({n:i/20+1,words:ws.slice(i,i+20)});return decks[k]}
+  const d=await (await fetch('data/'+k+'.json')).json();
+  let moved=0;d.forEach(c=>c.words.forEach((w,i)=>{const o=key(k,c.n,i);if(S.m[o]){S.m[wk(k,w)]=S.m[o];delete S.m[o];moved=1}}));if(moved)save();
+  return decks[k]=d}
+const activeKey=()=>S.mode==='theme'&&S.theme?'th-'+S.test+'-'+S.theme+'-'+(S.lv[S.test]||0):cur()[1];
+const activeCards=async()=>{const k=activeKey(),d=await loadDeck(k);return k.startsWith('th-')?d:cardsFor(cur(),d)};
+function cardsFor(lvl,deck){return lvl[2]?deck.filter(c=>c.words.some(w=>w.lv===lvl[2])):deck}
+function stat(k,c){let s=0,a=0;c.words.forEach((w,i)=>{const m=S.m[wk(k,w)];if(m==='s')s++;if(m==='a')a++});return{s,a,n:c.words.length}}
+
+/* voice */
+let voices=[];
+const loadV=()=>{try{voices=speechSynthesis.getVoices()}catch(e){};voiceUI()};
+try{speechSynthesis.onvoiceschanged=loadV}catch(e){};setTimeout(loadV,50);setTimeout(loadV,800);
+const langOf=k=>(S.acc&&S.acc[S.test])||(isHsk(k||cur()[1])?'zh-CN':'zh-TW');
+const norm=l=>(l||'').replace('_','-').toLowerCase();
+function voicesFor(lang){const L=lang.toLowerCase();
+  const exact=voices.filter(v=>norm(v.lang)===L||(L==='zh-tw'&&/zh-hant|cmn-hant-tw/.test(norm(v.lang))));
+  const other=voices.filter(v=>/^(zh|cmn|yue)/.test(norm(v.lang))&&!exact.includes(v)&&!/yue|hk/.test(norm(v.lang)));
+  return [...exact,...other]}
+function score(v,lang){let s=0;const n=v.name;
+  if(norm(v.lang)===lang.toLowerCase())s+=50;
+  if(/natural|neural|online/i.test(n))s+=40;if(/premium/i.test(n))s+=35;if(/enhanced|增強|高品質/i.test(n))s+=30;if(/google/i.test(n))s+=20;
+  if(/hsiaochen|hsiaoyu|yunjhe|meijia|mei-jia|xiaoxiao|yunxi|tingting|ting-ting/i.test(n))s+=10;
+  if(/compact|eloquence|grandma|grandpa|rocko|shelley|sandy|flo|reed|eddy/i.test(n))s-=30;return s}
+function bestVoice(lang){S.voice=S.voice||{};const vs=voicesFor(lang);
+  return vs.slice().sort((a,b)=>score(b,lang)-score(a,lang))[0]}
+function speak(t,k,slow){try{const lang=langOf(k);const u=new SpeechSynthesisUtterance(t);u.lang=lang;u.rate=slow?.85:.92;u.pitch=1;
+  const v=bestVoice(lang);if(v)u.voice=v;speechSynthesis.cancel();speechSynthesis.speak(u)}catch(e){}}
+function voiceUI(){const l=langOf();document.querySelectorAll('[data-acc]').forEach(b=>b.className=b.dataset.acc===l?'on':'')}
+/* home */
+async function home(){
+  $('t-tocfl').className=S.test==='tocfl'?'on':'';$('t-hsk').className=S.test==='hsk'?'on':'';
+  $('lvls').innerHTML=LEVELS[S.test].map((l,i)=>`<button class="${i===(S.lv[S.test]||0)?'on':''}" data-lv="${i}">${esc(l[0])}</button>`).join('');
+  const lvl=cur();voiceUI();
+  $('m-level').className=S.mode!=='theme'?'on':'';$('m-theme').className=S.mode==='theme'?'on':'';
+  $('lvpre').hidden=S.mode!=='theme';
+  if(S.mode==='theme'&&!S.theme){
+    const T=await loadThemes(S.test);if(S.mode!=='theme'||S.theme)return;const mx=S.lv[S.test]||0;
+    $('lvtitle').textContent='Themes · up to '+lvl[0];$('acts').innerHTML='';$('prog').hidden=true;
+    $('deck').innerHTML=T.themes.map(t=>{const n=T.words[t.key].filter(w=>w.r<=mx).length;
+      return n?`<button class="tile theme" data-theme="${t.key}"><span class="tseal zh">${esc(t.seal)}</span><span class="n">${esc(t.en)}</span><span class="lv zh">${esc(t.zh)} · ${n} words</span></button>`:''}).join('');
+    return}
+  $('prog').hidden=false;
+  const k=activeKey(),cards=await activeCards();if(activeKey()!==k)return;
+  if(S.mode==='theme'){const T=await loadThemes(S.test),t=T.themes.find(t=>t.key===S.theme);$('lvtitle').innerHTML=`<button class="pill" id="themes-back">← Themes</button> ${esc(t.en)} · up to ${esc(lvl[0])}`}
+  else $('lvtitle').textContent=lvl[0]+' cards';
+  let sure=0,again=0,done=0,tot=0;
+  if(!cards.length){$('deck').innerHTML='<p class="empty">No words in this theme at this level yet. Pick a higher level.</p>';$('acts').innerHTML='';return}
+  cards.forEach(c=>{const t=stat(k,c);sure+=t.s;again+=t.a;tot+=t.n;if(t.s===t.n)done++});
+  $('sure').textContent=sure;$('cdone').textContent=done;$('tot').textContent=tot;$('ctot').textContent=cards.length;
+  $('meter').style.width=(tot?sure/tot*100:0).toFixed(1)+'%';
+  const next=cards.find(c=>{const t=stat(k,c);return t.s<t.n})||cards[0];
+  $('acts').innerHTML=`<button data-card="${next.n}">${done?'Continue':'Start'} · Card ${next.n}</button><button data-review="1">Review ${again} weak words</button>`;
+  $('deck').innerHTML=cards.map(c=>{const t=stat(k,c);
+    return `<button class="tile${t.s===t.n?' done':''}" data-card="${c.n}"><span class="n">Card ${c.n}<small>${t.s}/${t.n}${c.essay?' · 故事':''}</small></span><span class="pv zh">${c.words.slice(0,4).map(w=>esc(disp(w,k))).join(' ')}</span><span class="bar"><i style="width:${t.s/t.n*100}%"></i></span></button>`}).join('');
+}
+
+/* card */
+function wordHTML(k,n,i,w){
+  const st=S.m[wk(k,w)],f=disp(w,k),chars=[...f],open=ui.show||ui.open[key(k,n,i)];
+  const alts=isHsk(k)?[]:w.t.split('/').slice(1);
+  return `<div class="w${chars.length>2?' long':''}${st==='s'?' sure':st==='a'?' again':''}" data-k="${k}" data-n="${n}"><button class="spk" data-say="${esc(f)}" aria-label="Listen to ${esc(f)}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M16.5 8.5a5 5 0 0 1 0 7M19 6a8.5 8.5 0 0 1 0 12"/></svg></button>
+   <button class="cells zh" data-stroke="${i}" aria-label="Stroke order for ${esc(f)}">${chars.map(ch=>`<span class="cell"><span>${esc(ch)}</span></span>`).join('')}</button>
+   ${alts.length?`<div class="alt zh">also ${alts.map(esc).join(' · ')}</div>`:''}
+   ${open?`<div class="ans"><div class="py">${esc(w.p)}</div><div class="en">${esc(w.en)}</div><div class="lvl">${esc(w.lv)}${w.pos?' · '+esc(w.pos):''}</div></div>`:`<button class="reveal" data-open="${i}">meaning</button>`}
+   <div class="marks"><button class="s${st==='s'?' on':''}" data-mk="${i}" data-v="s">✓ sure</button><button class="a${st==='a'?' on':''}" data-mk="${i}" data-v="a">✗ again</button></div>
+  </div>`}
+function hilite(zh,c){const fs=[];c.words.forEach((w,i)=>w.f.forEach(f=>fs.push([f,i])));fs.sort((a,b)=>b[0].length-a[0].length);
+  let out='',p=0;while(p<zh.length){const m=fs.find(([f])=>zh.startsWith(f,p));if(m){out+=`<mark data-w="${m[1]}">${esc(m[0])}</mark>`;p+=m[0].length}else{out+=esc(zh[p]);p++}}return out}
+const capQ=s=>s.replace(/“([a-zāáǎàēéěèīíǐìōóǒòūúǔù])/g,(m,a)=>'“'+a.toUpperCase());
+let view={k:null,n:0};
+async function cardView(k,n){
+  const deck=await loadDeck(k),c=deck.find(c=>c.n===n);if(!c){location.hash='';return}
+  view={k,n};const lvl=cur(),list=k.startsWith('th-')?deck:cardsFor(lvl[1]===k?lvl:[0,k],deck),idx=list.indexOf(c);
+  const tm=k.match(/^th-(tocfl|hsk)-([a-z]+)/);let tn='';if(tm){const T=await loadThemes(tm[1]);tn=(T.themes.find(t=>t.key===tm[2])||{}).en||'';tn=tn.split(':')[0]+' · '}
+  $('cvt').textContent=`${tn}Card ${n} · ${[...new Set(c.words.map(w=>w.lv))].join(' / ')}`;
+  $('mode').hidden=!c.essay;$('mode').textContent=ui.side==='front'?'Story →':'← Words';
+  let h='';
+  if(ui.side==='front'||!c.essay){const t=stat(k,c);
+    h=`<div class="row" style="justify-content:space-between;margin-bottom:12px"><span>${t.s}/${t.n} sure · tap a character for its strokes</span><button class="pill${ui.show?' on':''}" id="showall">${ui.show?'Hide meanings':'Show all meanings'}</button></div>
+     <div class="words">${c.words.map((w,i)=>wordHTML(k,n,i,w)).join('')}</div>
+     ${c.essay?'<button class="flip" id="flip">Flip card: read the story →</button>':''}`;
+  }else{
+    h=`<div class="story${ui.py?'':' hide-py'}${ui.en?'':' hide-en'}"><div class="row" style="justify-content:space-between"><h3 class="zh">小故事 · Card ${n}</h3><span class="row"><button class="pill${ui.py?' on':''}" id="tpy">Pinyin</button><button class="pill${ui.en?' on':''}" id="ten">English</button><button class="pill" id="sayall">Read aloud</button></span></div>
+     ${c.essay.map((s,j)=>`<div class="sent"><div class="zh">${hilite(s.zh,c)} <button class="sbtn" data-sayj="${j}" aria-label="Listen to sentence"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M16.5 8.5a5 5 0 0 1 0 7M19 6a8.5 8.5 0 0 1 0 12"/></svg></button></div><div class="py">${esc(capQ(s.py))}</div><div class="en">${esc(s.en)}</div></div>`).join('')}</div>
+     <p class="row" style="justify-content:center;margin-top:10px">Tap a highlighted word for its meaning.</p>`}
+  const pv=list[idx-1],nx=list[idx+1];
+  h+=`<div class="navrow"><button ${pv?`data-card="${pv.n}"`:'disabled'}>← Card ${pv?pv.n:''}</button><button ${nx?`data-card="${nx.n}"`:'disabled'}>Card ${nx?nx.n:''} →</button></div>`;
+  $('cvbody').innerHTML=h;
+}
+async function reviewView(){
+  const lvl=cur(),k=activeKey(),cards=await activeCards(),out=[];
+  cards.forEach(c=>c.words.forEach((w,i)=>{if(S.m[wk(k,w)]==='a')out.push(wordHTML(k,c.n,i,w))}));
+  $('rvt').textContent='Weak words · '+(k.startsWith('th-')?S.theme+' · ':'')+lvl[0];
+  $('rvw').innerHTML=out.join('')||'<p class="empty">No weak words yet. Mark words "✗ again" and they gather here.</p>';
+}
+
+/* strokes */
+let writers=[],cw=null;
+function groupFile(k,n){return 'strokes/'+k+'-'+Math.floor((n-1)/20)+'.json'}
+async function loadStrokes(k,n){const f=groupFile(k,n);if(!strokes[f])strokes[f]=fetch(f).then(r=>r.json());return strokes[f]}
+async function openStroke(k,n,i){
+  const deck=await loadDeck(k),w=deck.find(c=>c.n===n).words[i],f=disp(w,k);cw={w,k,f};
+  $('sh-w').textContent=f;$('sh-p').textContent=w.p;$('sh-e').textContent=w.en;$('sh-msg').textContent='Loading strokes…';
+  $('sheet').hidden=false;$('sh-x').focus();
+  const data=await (w.d?loadStrokes(w.d,w.n):loadStrokes(k,n)).catch(()=>({}));
+  $('pads').innerHTML=[...f].map((ch,j)=>`<div class="pad" id="pad${j}">${data[ch]?'':'<span class="na zh">'+esc(ch)+'<br>no stroke data</span>'}</div>`).join('');
+  const sz=$('pad0')?$('pad0').clientWidth:140;
+  writers=[...f].map((ch,j)=>data[ch]?HanziWriter.create('pad'+j,ch,{width:sz,height:sz,padding:6,showCharacter:false,showOutline:true,strokeAnimationSpeed:1.2,delayBetweenStrokes:180,strokeColor:getComputedStyle(document.body).color,radicalColor:getComputedStyle($('sh-p')).color,outlineColor:'rgba(150,140,130,.25)',drawingColor:'#c8352b',highlightColor:'#e0574b',charDataLoader:(c,ok)=>ok(data[c])}):null);
+  $('sh-msg').textContent='';play();
+}
+let playing=0;
+async function play(){const id=++playing;$('sh-msg').textContent='';
+  for(const w of writers){if(w)w.hideCharacter()}
+  for(const w of writers){if(!w)continue;if(id!==playing)return;await w.animateCharacter()}}
+function closeSheet(){playing++;writers=[];$('sheet').hidden=true;$('pads').innerHTML=''}
+
+/* routing: #lv, #c-<deck>-<n>, #review */
+function route(){
+  const h=location.hash.slice(1);let m;$('tip').hidden=true;closeSheet();
+  const show=id=>['home','cv','rv','intro'].forEach(x=>$(x).hidden=x!==id);
+  if((m=h.match(/^c-([a-zA-Z0-9-]+)-(\d+)$/))){show('cv');cardView(m[1],+m[2]);scrollTo(0,0)}
+  else if(h==='intro'){show('intro');scrollTo(0,0)}
+  else if(h==='review'){show('rv');reviewView();scrollTo(0,0)}
+  else{show('home');home()}
+}
+const goCard=(k,n)=>{ui.side='front';ui.show=false;ui.open={};location.hash='c-'+k+'-'+n};
+const rerender=()=>{$('rv').hidden?cardView(view.k,view.n):reviewView()};
+
+document.addEventListener('click',e=>{
+  const b=e.target.closest('button,mark');
+  if(e.target.id==='sheet'){closeSheet();return}
+  if(!b){$('tip').hidden=true;return}
+  const ctx=b.closest('.w'),k=ctx?ctx.dataset.k:view.k,n=ctx?+ctx.dataset.n:view.n;
+  if(b.dataset.acc){S.acc=S.acc||{};S.acc[S.test]=b.dataset.acc;save();voiceUI();speak(isHsk(cur()[1])?'你好，很高兴认识你。':'你好，很高興認識你。');return}
+  if(b.dataset.test){S.test=b.dataset.test;S.theme=null;save();home();return}
+  if(b.dataset.lv!==undefined){S.lv[S.test]=+b.dataset.lv;save();home();return}
+  if(b.dataset.card){goCard($('home').hidden?view.k:activeKey(),+b.dataset.card);return}
+  if(b.dataset.mode){S.mode=b.dataset.mode;S.theme=null;save();home();return}
+  if(b.dataset.theme){S.theme=b.dataset.theme;save();home();scrollTo(0,0);return}
+  if(b.id==='themes-back'){S.theme=null;save();home();return}
+  if(b.dataset.review){location.hash='review';return}
+  if(b.id==='back'||b.id==='back2'||b.id==='back3'||b.id==='go-start'){location.hash='';return}
+  if(b.id==='open-intro'){location.hash='intro';return}
+  if(b.dataset.sayw){speak(b.dataset.sayw,null,1);return}
+  if(b.id==='qplay'){qNew();return}
+  if(b.dataset.q){qAnswer(+b.dataset.q);return}
+  if(b.dataset.say){speak(b.dataset.say,k);return}
+  if(b.dataset.stroke!==undefined){openStroke(k,n,+b.dataset.stroke);return}
+  if(b.dataset.open!==undefined){ui.open[key(k,n,b.dataset.open)]=1;rerender();return}
+  if(b.dataset.mk!==undefined){const q=wk(k,decks[k].find(c=>c.n===n).words[+b.dataset.mk]);S.m[q]=S.m[q]===b.dataset.v?undefined:b.dataset.v;if(!S.m[q])delete S.m[q];save();rerender();return}
+  if(b.dataset.sayj!==undefined){const c=decks[view.k].find(c=>c.n===view.n);speak(c.essay[+b.dataset.sayj].zh,view.k,1);return}
+  if(b.tagName==='MARK'){const c=decks[view.k].find(c=>c.n===view.n),w=c.words[+b.dataset.w];const t=$('tip');t.innerHTML=`<span class="zh" style="font-size:22px">${esc(disp(w,view.k))}</span> &nbsp;${esc(w.p)} · ${esc(w.en)}`;t.hidden=false;return}
+  switch(b.id){
+    case 'mode':ui.side=ui.side==='front'?'back':'front';cardView(view.k,view.n);scrollTo(0,0);break;
+    case 'flip':ui.side='back';cardView(view.k,view.n);scrollTo(0,0);break;
+    case 'showall':ui.show=!ui.show;cardView(view.k,view.n);break;
+    case 'tpy':ui.py=!ui.py;cardView(view.k,view.n);break;
+    case 'ten':ui.en=!ui.en;cardView(view.k,view.n);break;
+    case 'sayall':speak(decks[view.k].find(c=>c.n===view.n).essay.map(s=>s.zh).join(''),view.k,1);break;
+    case 'sh-x':closeSheet();break;
+    case 'sh-play':play();break;
+    case 'sh-say':cw&&speak(cw.f,cw.k);break;
+  }
+});
+const QS=[['媽','麻','馬','罵','mā','má','mǎ','mà'],['八','拔','把','爸','bā','bá','bǎ','bà'],['湯','糖','躺','燙','tāng','táng','tǎng','tàng'],['衣','姨','椅','意','yī','yí','yǐ','yì'],['安','銀','飲','印','—','—','—','—']];
+let q=null,qr=0,qt=0;
+function qNew(){const sets=QS.slice(0,4),s=sets[Math.floor(Math.random()*sets.length)],t=Math.floor(Math.random()*4);
+  if(!q||q.done){q={s,t,done:false}}speak(q.s[q.t],null,1);
+  document.querySelectorAll('[data-q]').forEach(x=>{x.disabled=false;x.className=''});$('qmsg').textContent='Which tone did you hear?';$('qplay').lastChild.textContent=' Play again'}
+function qAnswer(a){if(!q||q.done)return;q.done=true;qt++;const ok=a===q.t+1;if(ok)qr++;
+  document.querySelectorAll('[data-q]').forEach(x=>{x.disabled=true;if(+x.dataset.q===q.t+1)x.className='ok';else if(+x.dataset.q===a)x.className='no'});
+  $('qscore').textContent=qr+' / '+qt;$('qmsg').textContent=(ok?'Correct! ':'Not quite. ')+'It was '+q.s[q.t]+' '+q.s[q.t+4]+' (tone '+(q.t+1)+'). Tap Play for the next one.';$('qplay').lastChild.textContent=' Next'}
+document.addEventListener('click',e=>{const a=e.target.closest('[data-jump]');if(a){e.preventDefault();const t=document.getElementById(a.dataset.jump);t&&t.scrollIntoView({behavior:'smooth'})}});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!$('sheet').hidden)closeSheet()});
+addEventListener('hashchange',route);
+if(typeof HanziWriter==='undefined')window.HanziWriter={create:()=>null};
+route();
+}
+</script>
+</body>
+</html>
